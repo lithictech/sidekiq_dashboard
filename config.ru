@@ -3,11 +3,16 @@
 
 require 'sidekiq'
 
+url = ENV.fetch('REDIS_URL','redis://localhost:6379')
+redis_params = {url: url, size: 1}
+if url.start_with?("rediss:") && ENV["HEROKU_APP_ID"]
+  # rediss: schema is Redis with SSL. They use self-signed certs, so we have to turn off SSL verification.
+  # There is not a clear KB on this, you have to piece it together from Heroku and Sidekiq docs.
+  redis_params[:ssl_params] = {verify_mode: OpenSSL::SSL::VERIFY_NONE}
+end
+
 Sidekiq.configure_client do |config|
-  config.redis = {
-    url: ENV.fetch('REDIS_URL','redis://localhost:6379'),
-    size: 1
-  }
+  config.redis = redis_params
 end
 
 require 'sidekiq/web'
